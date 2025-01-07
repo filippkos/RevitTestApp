@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+	<AddIn Type="Command">
+		<Name>RevitTestApp</Name>
+		<Assembly>RevitTestApp.dll</Assembly>
+		<AddInId>
+			D5E6185A-A336-4BE4-B9CE-E702F9E3F901
+		</AddInId>
+		<FullClassName>RevitTestApp.Commands.ViewTitleBlock</FullClassName>
+		<Text>Title Block Provider</Text>
+		<Description>Provides Title Block</Description>
+		<VendorId>Filipp</VendorId>
+	</AddIn>
+	<AddIn Type="Command">
+		<Name>RevitTestApp</Name>
+		<Assembly>RevitTestApp.dll</Assembly>
+		<AddInId>
+			859F058D-E3CD-44D7-96FC-8AD798710698
+		</AddInId>
+		<FullClassName>RevitTestApp.Commands.HiddenElements</FullClassName>
+		<Text>Create Hidden Elements 3DView</Text>
+		<Description>Creates a new 3DView</Description>
+		<VendorId>Filipp</VendorId>
+	</AddIn>
+	<AddIn Type="Command">
+		<Name>RevitTestApp</Name>
+		<Assembly>RevitTestApp.dll</Assembly>
+		<AddInId>
+			D2F28126-07CB-48B1-8651-C33D54117646
+		</AddInId>
+		<FullClassName>RevitTestApp.Commands.RoomFloors</FullClassName>
+		<Text>Create floor</Text>
+		<Description>Creates a floor</Description>
+		<VendorId>Filipp</VendorId>
+	</AddIn>
+	<AddIn Type="Command">
+		<Name>RevitTestApp</Name>
+		<Assembly>RevitTestApp.dll</Assembly>
+		<AddInId>
+			DFDEA940-6B16-4ADE-A2B5-597A4FCAFEFB
+		</AddInId>
+		<FullClassName>RevitTestApp.Commands.RoomPlans</FullClassName>
+		<Text>Create room plans</Text>
+		<Description>Creates plans of all rooms</Description>
+		<VendorId>Filipp</VendorId>
+	</AddIn>
+	<AddIn Type="Application">
+		<Name>ApplicationPlugin</Name>
+		<Assembly>RevitTestApp.dll</Assembly>
+		<AddInId>
+			1F38645F-ED7D-4B7E-B2A5-74E749099912
+		</AddInId>
+		<FullClassName>RevitTestApp.ExternalApplication</FullClassName>
+		<VendorId>Filipp</VendorId>
+	</AddIn>
+</RevitAddIns>
