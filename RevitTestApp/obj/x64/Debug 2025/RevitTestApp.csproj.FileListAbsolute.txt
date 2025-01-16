@@ -16,3 +16,8 @@ D:\STUDY\Programming\C#\RevitTestApp\RevitTestApp\obj\x64\Debug 2025\refint\Revi
 D:\STUDY\Programming\C#\RevitTestApp\RevitTestApp\obj\x64\Debug 2025\RevitTestApp.pdb
 D:\STUDY\Programming\C#\RevitTestApp\RevitTestApp\obj\x64\Debug 2025\RevitTestApp.genruntimeconfig.cache
 D:\STUDY\Programming\C#\RevitTestApp\RevitTestApp\obj\x64\Debug 2025\ref\RevitTestApp.dll
+D:\STUDY\Programming\C#\RevitTestApp\RevitTestApp\obj\x64\Debug 2025\Wpf\Dialogs\PlanSelection.g.cs
+D:\STUDY\Programming\C#\RevitTestApp\RevitTestApp\obj\x64\Debug 2025\RevitTestApp_MarkupCompile.cache
+D:\STUDY\Programming\C#\RevitTestApp\RevitTestApp\obj\x64\Debug 2025\RevitTestApp_MarkupCompile.lref
+D:\STUDY\Programming\C#\RevitTestApp\RevitTestApp\obj\x64\Debug 2025\Wpf\Dialogs\PlanSelection.baml
+D:\STUDY\Programming\C#\RevitTestApp\RevitTestApp\obj\x64\Debug 2025\RevitTestApp.sourcelink.json

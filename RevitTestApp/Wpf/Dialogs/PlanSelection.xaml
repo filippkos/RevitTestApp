@@ -1,0 +1,36 @@
+﻿<Window x:Class="RevitTestApp.Wpf.Dialogs.PlanSelection"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RevitTestApp.Wpf.Dialogs"
+        mc:Ignorable="d"
+        Title="Plan Selection" Height="200" Width="400" Loaded="WindowLoaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="95"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30"></RowDefinition>
+                <RowDefinition Height="*"></RowDefinition>
+            </Grid.RowDefinitions>
+
+            <Label Grid.Row="0" Content="Select Plan" Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <ComboBox Grid.Row="1" x:Name="plans" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="10, 10" Height="44"/>
+        </Grid>
+
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" x:Name="Create" Content="Create Sheet" Margin="10,10,10,10" Height="44" Click="CreateClick" />
+            <Button Grid.Column="1" x:Name="Cancel" Content="Cancel" Margin="10,10,10,10" Height="44" Click="CancelClick" />
+        </Grid>
+    </Grid>
+</Window>

@@ -10,12 +10,14 @@ namespace RevitTestApp
         public static string ErrorTitle = "Error";
         public static string MessageTitle = "Message";
         public static string SuccessTitle = "Success";
+        public static string CancelTitle = "Cancel";
 
         public static string IsNot2DErrorDescription = "The plugin can only be used for 2D views.";
         public static string IsAlreadyPlacedErrorDescription = "This view is already placed on another sheet.";
         public static string FaildToGetDimensionsErrorDescription = "Failed to get view dimensions.";
         public static string FailedToCreateSheetErrorDescription = "Failed to create new sheet.";
         public static string TitleBlockNotFoundErrorDescription = "No suitable title block was found to host the view.";
+        public static string OperationWasCancelledDescription = "The operation was cancelled.";
 
         public static string UnableToFind3DViewTypeErrorDescription = "Unable to find family type for 3D view.";
         public static string NoHiddenElementsDescription = "There are no hidden elements in the current view.";

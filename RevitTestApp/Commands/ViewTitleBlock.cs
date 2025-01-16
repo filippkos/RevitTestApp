@@ -1,9 +1,8 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using System.Linq;
-using System.Collections.Generic;
-using Autodesk.Revit.DB.Visual;
+using RevitTestApp.Wpf.Dialogs;
+using System.Windows;
 
 namespace RevitTestApp.Commands
 {
@@ -14,25 +13,55 @@ namespace RevitTestApp.Commands
         {
             UIDocument uiDoc = commandData.Application.ActiveUIDocument;
             Document doc = uiDoc.Document;
-            View activeView = doc.ActiveView;
 
-            if (!Is2DView(activeView)) return ShowErrorAndFail(Strings.ErrorTitle, Strings.IsNot2DErrorDescription);
-
-            if (!IsViewNotOnSheet(activeView, doc)) return ShowErrorAndFail(Strings.ErrorTitle, Strings.IsAlreadyPlacedErrorDescription);
-
-            var viewDimensions = GetViewDimensions(activeView);
-            if (viewDimensions == null) return ShowErrorAndFail(Strings.ErrorTitle, Strings.FaildToGetDimensionsErrorDescription);
-
-            double scaledViewArea = viewDimensions.Value.Width * viewDimensions.Value.Height;
-            Element? optimalTitleBlock = FindOptimalTitleBlock(doc, viewDimensions.Value);
-
-            if (optimalTitleBlock != null)
+            PlanSelection selection = new PlanSelection(GetAll2DViews(doc));
+            bool? result = selection.ShowDialog();
+            if (result == true)
             {
-                return CreateSheetAndPlaceView(doc, activeView, optimalTitleBlock, viewDimensions.Value);
-            }
+                View? selectedView = selection.SelectedPlan;
 
-            TaskDialog.Show(Strings.MessageTitle, Strings.TitleBlockNotFoundErrorDescription);
-            return Result.Succeeded;
+                if (!Is2DView(selectedView)) return ShowErrorAndFail(Strings.ErrorTitle, Strings.IsNot2DErrorDescription);
+
+                if (!IsViewNotOnSheet(selectedView, doc)) return ShowErrorAndFail(Strings.ErrorTitle, Strings.IsAlreadyPlacedErrorDescription);
+
+                var viewDimensions = GetViewDimensions(selectedView);
+                if (viewDimensions == null) return ShowErrorAndFail(Strings.ErrorTitle, Strings.FaildToGetDimensionsErrorDescription);
+
+                double scaledViewArea = viewDimensions.Value.Width * viewDimensions.Value.Height;
+                Element? optimalTitleBlock = FindOptimalTitleBlock(doc, viewDimensions.Value);
+
+                if (optimalTitleBlock != null)
+                {
+                    return CreateSheetAndPlaceView(doc, selectedView, optimalTitleBlock, viewDimensions.Value);
+                }
+
+                TaskDialog.Show(Strings.MessageTitle, Strings.TitleBlockNotFoundErrorDescription);
+
+                return Result.Succeeded;
+            }
+            else
+            {
+                TaskDialog.Show(Strings.CancelTitle, Strings.OperationWasCancelledDescription);
+
+                return Result.Failed;
+            }
+        }
+
+        public static List<View> GetAll2DViews(Document doc)
+        {
+            // Собираем все виды
+            var views = new FilteredElementCollector(doc)
+                .OfClass(typeof(View))
+                .Cast<View>()
+                .Where(v => !v.IsTemplate && 
+                    (v.ViewType == ViewType.FloorPlan ||
+                     v.ViewType == ViewType.CeilingPlan ||
+                     v.ViewType == ViewType.Section ||
+                     v.ViewType == ViewType.Elevation ||
+                     v.ViewType == ViewType.Detail))
+                .ToList();
+
+            return views;
         }
 
         private bool Is2DView(View view) => view is ViewPlan || view is ViewSection || view is ViewDrafting;
@@ -66,10 +95,7 @@ namespace RevitTestApp.Commands
             double? optimalSheetArea = null;
             Element? optimalTitleBlock = null;
 
-            var titleBlocks = new FilteredElementCollector(doc)
-                .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                .WhereElementIsNotElementType()
-                .ToList();
+            var titleBlocks = AllTitleBlocksIn(doc);
 
             foreach (Element titleBlock in titleBlocks)
             {
@@ -88,6 +114,22 @@ namespace RevitTestApp.Commands
             }
 
             return optimalTitleBlock;
+        }
+
+        private List<Element> AllTitleBlocksIn(Document doc)
+        { 
+            return new FilteredElementCollector(doc)
+                .OfCategory(BuiltInCategory.OST_TitleBlocks)
+                .WhereElementIsNotElementType()
+                .ToList();
+        }
+
+        private List<Element> AllLevelsIn(Document doc)
+        {
+            return new FilteredElementCollector(doc)
+                .OfCategory(BuiltInCategory.OST_Levels)
+                .WhereElementIsNotElementType()
+                .ToList();
         }
 
         private Result CreateSheetAndPlaceView(Document doc, View view, Element titleBlock, (double Width, double Height) viewDimensions)
