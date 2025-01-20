@@ -1,0 +1,60 @@
+# Main Visual Studio files and folders
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build directories
+bin/
+obj/
+Debug/
+Release/
+out/
+
+# NuGet
+*.nupkg
+packages/
+*.snupkg
+.nuget/
+
+# Temporary settings files
+*.log
+*.tmp
+*.cache
+
+# Rider/JetBrains files
+.idea/
+*.iml
+
+# Resharper
+*.DotSettings.user
+
+# Rider/VSCode specific settings
+.vscode/
+*.code-workspace
+
+# Auto-generated files
+*.designer.cs
+*.g.cs
+*.g.i.cs
+*.resources
+Generated_Code/
+
+# Unity files (if the project contains Unity components)
+Library/
+Temp/
+Build/
+obj/
+*.csproj
+*.unityproj
+*.sln
+ProjectSettings/
+
+# Revit API (for plugins)
+*.addin
+Addins/
+
+# System files
+Thumbs.db
+*.DS_Store
