@@ -41,16 +41,6 @@ packages/
 *.resources
 Generated_Code/
 
-# Unity files (if the project contains Unity components)
-Library/
-Temp/
-Build/
-obj/
-*.csproj
-*.unityproj
-*.sln
-ProjectSettings/
-
 # System files
 Thumbs.db
 *.DS_Store
