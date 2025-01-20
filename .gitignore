@@ -51,10 +51,6 @@ obj/
 *.sln
 ProjectSettings/
 
-# Revit API (for plugins)
-*.addin
-Addins/
-
 # System files
 Thumbs.db
 *.DS_Store
