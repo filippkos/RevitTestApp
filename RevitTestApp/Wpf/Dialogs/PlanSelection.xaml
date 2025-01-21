@@ -11,24 +11,19 @@
             <RowDefinition Height="95"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
-
         <Grid Grid.Row="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="30"></RowDefinition>
                 <RowDefinition Height="*"></RowDefinition>
             </Grid.RowDefinitions>
-
             <Label Grid.Row="0" Content="Select Plan" Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center" />
             <ComboBox Grid.Row="1" x:Name="plans" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="10, 10" Height="44"/>
         </Grid>
-
-
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-
             <Button Grid.Column="0" x:Name="Create" Content="Create Sheet" Margin="10,10,10,10" Height="44" Click="CreateClick" />
             <Button Grid.Column="1" x:Name="Cancel" Content="Cancel" Margin="10,10,10,10" Height="44" Click="CancelClick" />
         </Grid>

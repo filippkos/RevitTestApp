@@ -11,33 +11,26 @@
             <RowDefinition Height="95"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
-
         <Grid Grid.Row="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="25"></RowDefinition>
                 <RowDefinition Height="*"></RowDefinition>
             </Grid.RowDefinitions>
-
             <Label Grid.Row="0" Content="New 3D view name" Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center" />
-
             <Grid Grid.Row="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="45"></RowDefinition>
                     <RowDefinition Height="*"></RowDefinition>
                 </Grid.RowDefinitions>
-
                 <TextBox Grid.Row="0" x:Name="textBox" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="10, 0, 10, 0" Height="44"/>
                 <Label Grid.Row="1" x:Name="messageLabel" Content="" Foreground="Red" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10, 0, 10, 0"/>
             </Grid>
         </Grid>
-
-
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-
             <Button Grid.Column="0" x:Name="Create" Content="Create View" Margin="10,10,10,10" Height="44" Click="CreateClick" />
             <Button Grid.Column="1" x:Name="Cancel" Content="Cancel" Margin="10,10,10,10" Height="44" Click="CancelClick" />
         </Grid>

@@ -47,9 +47,8 @@ namespace RevitTestApp.Commands
             }
         }
 
-        public static List<View> GetAll2DViews(Document doc)
+        private static List<View> GetAll2DViews(Document doc)
         {
-            // Собираем все виды
             var views = new FilteredElementCollector(doc)
                 .OfClass(typeof(View))
                 .Cast<View>()
@@ -120,14 +119,6 @@ namespace RevitTestApp.Commands
         { 
             return new FilteredElementCollector(doc)
                 .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                .WhereElementIsNotElementType()
-                .ToList();
-        }
-
-        private List<Element> AllLevelsIn(Document doc)
-        {
-            return new FilteredElementCollector(doc)
-                .OfCategory(BuiltInCategory.OST_Levels)
                 .WhereElementIsNotElementType()
                 .ToList();
         }
