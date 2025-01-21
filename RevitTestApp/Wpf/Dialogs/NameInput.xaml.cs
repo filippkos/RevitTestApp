@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Autodesk.Revit.DB;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,54 +12,40 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using Autodesk.Revit.DB;
-using RevitTestApp.Commands;
 
 namespace RevitTestApp.Wpf.Dialogs
 {
     /// <summary>
-    /// Interaction logic for PlanSelection.xaml
+    /// Interaction logic for NameInput.xaml
     /// </summary>
-    public partial class PlanSelection : Window
+    public partial class NameInput : Window
     {
-        private IList<View> plansList;
-
-        public View? SelectedPlan;
-
-        public PlanSelection(IList<View> plans)
+        public string name;
+        public NameInput()
         {
             InitializeComponent();
-            plansList = plans;
-        }
-
-        private void WindowLoaded(object sender, RoutedEventArgs e)
-        {
-            foreach (var item in plansList)
-            {
-                plans.Items.Add(item);
-            }
-            plans.Text = "Select a Plan";
-            plans.DisplayMemberPath = "Name";
         }
 
         private void CreateClick(object sender, RoutedEventArgs e)
         {
-            if (plans.SelectedItem != null)
+            if (textBox.Text != "")
             {
-                SelectedPlan = plans.SelectedItem as View;
+                messageLabel.Content = "";
+                name = textBox.Text;
                 DialogResult = true;
                 Close();
             }
             else
             {
-                plans.Text = "You have not selected a plan.";
+                messageLabel.Content = "The name field is empty.";
             }
         }
 
         private void CancelClick(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
-            Close(); 
+            Close();
         }
+
     }
 }

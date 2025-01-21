@@ -43,7 +43,7 @@ namespace RevitTestApp.Commands
             {
                 TaskDialog.Show(Strings.CancelTitle, Strings.OperationWasCancelledDescription);
 
-                return Result.Failed;
+                return Result.Cancelled;
             }
         }
 

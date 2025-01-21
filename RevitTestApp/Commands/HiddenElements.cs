@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Windows.Controls;
 using System;
 using Autodesk.Revit.DB.Visual;
+using RevitTestApp.Wpf.Dialogs;
 
 namespace RevitTestApp.Commands
 {
@@ -17,51 +18,67 @@ namespace RevitTestApp.Commands
             UIDocument uiDoc = commandData.Application.ActiveUIDocument;
             Document doc = uiDoc.Document;
             View startView = doc.ActiveView;
+            NameInput nameInput = new NameInput();
+            string name;
 
             ElementId? viewId = GetViewType(doc);
 
+            bool? result = nameInput.ShowDialog();
+            name = nameInput.name;
+
             if (viewId != null)
             {
-                View3D view;
-                
-                List<ElementId> invisibleElementsIds = GetInvisibleElementsIn(doc);
-
-                if (invisibleElementsIds.Count == 0)
+                if (result == true)
                 {
-                    TaskDialog.Show(Strings.MessageTitle, Strings.NoHiddenElementsDescription);
+                    View3D view;
+
+                    List<ElementId> invisibleElementsIds = GetInvisibleElementsIn(doc);
+
+                    if (invisibleElementsIds.Count == 0)
+                    {
+                        TaskDialog.Show(Strings.MessageTitle, Strings.NoHiddenElementsDescription);
+                        return Result.Succeeded;
+                    }
+
+                    using (Transaction trans1 = new Transaction(doc, "Placing a view on a sheet"))
+                    {
+                        trans1.Start();
+                        view = View3D.CreateIsometric(doc, viewId);
+
+                        view.Name = name;
+
+                        trans1.Commit();
+                    }
+
+                    Dictionary<string, Color> types = GetUniqueElementTypesWithColors(invisibleElementsIds, doc);
+
+                    var elementIds = new FilteredElementCollector(doc)
+                        .WhereElementIsNotElementType()
+                        .Cast<Element>()
+                        .Where(x => x.CanBeHidden(view) && !(x is View))
+                        .Select(x => x.Id)
+                        .ToList();
+
+                    using (Transaction trans = new Transaction(doc, "Hiding and unhiding"))
+                    {
+                        trans.Start();
+
+                        view.HideElements(elementIds);
+                        view.UnhideElements(invisibleElementsIds);
+
+                        trans.Commit();
+                    }
+
+                    SetColorsTo(invisibleElementsIds, doc, view);
+
                     return Result.Succeeded;
-                }
-
-                using (Transaction trans1 = new Transaction(doc, "Placing a view on a sheet"))
+                } 
+                else
                 {
-                    trans1.Start();
-                    view = View3D.CreateIsometric(doc, viewId);
-                    view.Name = "Hidden objects 3D view";
+                    TaskDialog.Show(Strings.CancelTitle, Strings.OperationWasCancelledDescription);
 
-                    trans1.Commit();
+                    return Result.Cancelled;
                 }
-
-                Dictionary<string, Color> types = GetUniqueElementTypesWithColors(invisibleElementsIds, doc);
-
-                var elementIds = new FilteredElementCollector(doc)
-                    .WhereElementIsNotElementType()
-                    .Cast<Element>()
-                    .Where(x => x.CanBeHidden(view) && !(x is View))
-                    .Select(x => x.Id)
-                    .ToList();
-
-                using (Transaction trans = new Transaction(doc, "Hiding and unhiding"))
-                {
-                    trans.Start();
-
-                    view.HideElements(elementIds);
-                    view.UnhideElements(invisibleElementsIds);
-
-                    trans.Commit();
-                }
-
-                SetColorsTo(invisibleElementsIds, doc, view);
-                return Result.Succeeded;
             }
 
             return Result.Failed;
