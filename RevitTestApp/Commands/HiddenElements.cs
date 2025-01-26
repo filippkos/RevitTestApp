@@ -15,156 +15,232 @@ namespace RevitTestApp.Commands
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            UIDocument uiDoc = commandData.Application.ActiveUIDocument;
-            Document doc = uiDoc.Document;
-            View startView = doc.ActiveView;
-            NameInput nameInput = new NameInput();
-            string name;
-
-            ElementId? viewId = GetViewType(doc);
-
-            bool? result = nameInput.ShowDialog();
-            name = nameInput.name;
-
-            if (viewId != null)
+            try
             {
-                if (result == true)
+                UIDocument uiDoc = commandData.Application.ActiveUIDocument;
+                Document doc = uiDoc.Document;
+                View startView = doc.ActiveView;
+                NameInput nameInput = new NameInput();
+                string name;
+
+                ElementId? viewId = GetViewType(doc);
+
+                bool? result = nameInput.ShowDialog();
+                name = nameInput.name;
+
+                if (viewId != null)
                 {
-                    View3D view;
-
-                    List<ElementId> invisibleElementsIds = GetInvisibleElementsIn(doc);
-
-                    if (invisibleElementsIds.Count == 0)
+                    if (result == true)
                     {
-                        TaskDialog.Show(Strings.MessageTitle, Strings.NoHiddenElementsDescription);
+                        View3D view;
+
+                        List<ElementId> invisibleElementsIds = GetInvisibleElementsIn(doc);
+
+                        if (invisibleElementsIds.Count == 0)
+                        {
+                            TaskDialog.Show(Strings.MessageTitle, Strings.NoHiddenElementsError);
+                            return Result.Succeeded;
+                        }
+
+                        using (Transaction trans1 = new Transaction(doc, "Placing a view on a sheet"))
+                        {
+                            try
+                            {
+                                trans1.Start();
+                                view = View3D.CreateIsometric(doc, viewId);
+
+                                view.Name = name;
+
+                                trans1.Commit();
+                            }
+                            catch (Exception ex)
+                            {
+                                trans1.RollBack();
+                                TaskDialog.Show(Strings.ErrorTitle, $"{Strings.FailedToCreate3DView}: " + ex.Message);
+                                return Result.Failed;
+                            }
+                        }
+
+                        Dictionary<string, Color> types;
+                        try
+                        {
+                            types = GetUniqueElementTypesWithColors(invisibleElementsIds, doc);
+                        }
+                        catch (Exception ex)
+                        {
+                            TaskDialog.Show(Strings.ErrorTitle, Strings.FailedToGetElementTypesAndColorsError + ex.Message);
+                            return Result.Failed;
+                        }
+
+                        var elementIds = new FilteredElementCollector(doc)
+                            .WhereElementIsNotElementType()
+                            .Cast<Element>()
+                            .Where(x => x.CanBeHidden(view) && !(x is View))
+                            .Select(x => x.Id)
+                            .ToList();
+
+                        using (Transaction trans = new Transaction(doc, "Hiding and unhiding"))
+                        {
+                            try
+                            {
+                                trans.Start();
+
+                                view.HideElements(elementIds);
+                                view.UnhideElements(invisibleElementsIds);
+
+                                trans.Commit();
+                            }
+                            catch (Exception ex)
+                            {
+                                trans.RollBack();
+                                TaskDialog.Show(Strings.ErrorTitle, Strings.FailedToHideElements + ex.Message);
+                                return Result.Failed;
+                            }
+                        }
+
+                        try
+                        {
+                            SetColorsTo(invisibleElementsIds, doc, view);
+                        }
+                        catch (Exception ex)
+                        {
+                            TaskDialog.Show(Strings.ErrorTitle, Strings.FailedToSetElementColorError + ex.Message);
+                            return Result.Failed;
+                        }
+
                         return Result.Succeeded;
                     }
-
-                    using (Transaction trans1 = new Transaction(doc, "Placing a view on a sheet"))
+                    else
                     {
-                        trans1.Start();
-                        view = View3D.CreateIsometric(doc, viewId);
+                        TaskDialog.Show(Strings.CancelTitle, Strings.OperationWasCancelledError);
 
-                        view.Name = name;
-
-                        trans1.Commit();
+                        return Result.Cancelled;
                     }
-
-                    Dictionary<string, Color> types = GetUniqueElementTypesWithColors(invisibleElementsIds, doc);
-
-                    var elementIds = new FilteredElementCollector(doc)
-                        .WhereElementIsNotElementType()
-                        .Cast<Element>()
-                        .Where(x => x.CanBeHidden(view) && !(x is View))
-                        .Select(x => x.Id)
-                        .ToList();
-
-                    using (Transaction trans = new Transaction(doc, "Hiding and unhiding"))
-                    {
-                        trans.Start();
-
-                        view.HideElements(elementIds);
-                        view.UnhideElements(invisibleElementsIds);
-
-                        trans.Commit();
-                    }
-
-                    SetColorsTo(invisibleElementsIds, doc, view);
-
-                    return Result.Succeeded;
-                } 
-                else
-                {
-                    TaskDialog.Show(Strings.CancelTitle, Strings.OperationWasCancelledDescription);
-
-                    return Result.Cancelled;
                 }
-            }
 
-            return Result.Failed;
+                return Result.Failed;
+            }
+            catch (Exception ex)
+            {
+                TaskDialog.Show(Strings.ErrorTitle, $"{Strings.UnexpectedError}: " + ex.Message);
+                return Result.Failed;
+            }
         }
 
         public void SetColorsTo(List<ElementId> invisibleElementsIds, Document doc, View view)
         {
-            var typesAndColors = GetUniqueElementTypesWithColors(invisibleElementsIds, doc);
-
-            foreach (ElementId id in invisibleElementsIds)
+            try
             {
-                var type = (doc.GetElement(doc.GetElement(id).GetTypeId()) as ElementType).ToString();
-                SetElementColor(view, id, typesAndColors[type], doc);
+                var typesAndColors = GetUniqueElementTypesWithColors(invisibleElementsIds, doc);
 
+                foreach (ElementId id in invisibleElementsIds)
+                {
+                    var type = (doc.GetElement(doc.GetElement(id).GetTypeId()) as ElementType).ToString();
+                    SetElementColor(view, id, typesAndColors[type], doc);
+                }
             }
-
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToSetElementColorError + ex.Message, ex);
+            }
         }
 
         public Dictionary<string, Color> GetUniqueElementTypesWithColors(List<ElementId> elementsIds, Document doc)
         {
-            Dictionary<string, Color> elementTypeColorMap = new Dictionary<string, Color>();
-
-            foreach (ElementId elementId in elementsIds)
+            try
             {
-                Element element = doc.GetElement(elementId);
-                ElementId typeId = element.GetTypeId();
-                string? type = (doc.GetElement(typeId) as ElementType).ToString();
+                Dictionary<string, Color> elementTypeColorMap = new Dictionary<string, Color>();
 
-                if (type == null) continue; 
+                foreach (ElementId elementId in elementsIds)
+                {
+                    Element element = doc.GetElement(elementId);
+                    ElementId typeId = element.GetTypeId();
+                    string? type = (doc.GetElement(typeId) as ElementType).ToString();
 
-                if (typeId == ElementId.InvalidElementId) continue; 
+                    if (type == null) continue;
 
-                if (elementTypeColorMap.ContainsKey(type)) continue;
+                    if (typeId == ElementId.InvalidElementId) continue;
 
-                Random random = new Random(Guid.NewGuid().GetHashCode());
-                Color randomColor = new Color((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+                    if (elementTypeColorMap.ContainsKey(type)) continue;
 
-                elementTypeColorMap[type] = randomColor;
+                    Random random = new Random(Guid.NewGuid().GetHashCode());
+                    Color randomColor = new Color((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256));
+
+                    elementTypeColorMap[type] = randomColor;
+                }
+
+                return elementTypeColorMap;
             }
-
-            return elementTypeColorMap;
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToGetUniqueTypes + ex.Message, ex);
+            }
         }
 
         public void SetElementColor(View view, ElementId elementId, Color color, Document doc)
         {
-            OverrideGraphicSettings overrideSettings = new OverrideGraphicSettings();
-
-            overrideSettings.SetProjectionLineColor(color);
-            overrideSettings.SetSurfaceBackgroundPatternColor(color);
-            overrideSettings.SetSurfaceBackgroundPatternId(FillPatternElement.GetFillPatternElementByName(doc, FillPatternTarget.Drafting, "<Solid fill>").Id);
-
-            using (Transaction tx = new Transaction(doc, "Override Element Color"))
+            try
             {
-                tx.Start();
-                view.SetElementOverrides(elementId, overrideSettings);
-                tx.Commit();
+                OverrideGraphicSettings overrideSettings = new OverrideGraphicSettings();
+
+                overrideSettings.SetProjectionLineColor(color);
+                overrideSettings.SetSurfaceBackgroundPatternColor(color);
+                overrideSettings.SetSurfaceBackgroundPatternId(FillPatternElement.GetFillPatternElementByName(doc, FillPatternTarget.Drafting, "<Solid fill>").Id);
+
+                using (Transaction tx = new Transaction(doc, "Override Element Color"))
+                {
+                    tx.Start();
+                    view.SetElementOverrides(elementId, overrideSettings);
+                    tx.Commit();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToSetElementColorError + ex.Message, ex);
             }
         }
 
         private ElementId? GetViewType(Document doc)
         {
-            ElementId? viewFamilyTypeId = null;
-
-            FilteredElementCollector collector = new FilteredElementCollector(doc);
-            foreach (ViewFamilyType vft in collector.OfClass(typeof(ViewFamilyType)).Cast<ViewFamilyType>())
+            try
             {
-                if (vft.ViewFamily == ViewFamily.ThreeDimensional) return vft.Id;
+                ElementId? viewFamilyTypeId = null;
+
+                FilteredElementCollector collector = new FilteredElementCollector(doc);
+                foreach (ViewFamilyType vft in collector.OfClass(typeof(ViewFamilyType)).Cast<ViewFamilyType>())
+                {
+                    if (vft.ViewFamily == ViewFamily.ThreeDimensional) return vft.Id;
+                }
+
+                if (viewFamilyTypeId == null) TaskDialog.Show(Strings.ErrorTitle, Strings.UnableToFind3DViewTypeError);
+
+                return null;
             }
-
-            if (viewFamilyTypeId == null) TaskDialog.Show(Strings.ErrorTitle, Strings.UnableToFind3DViewTypeErrorDescription);
-
-            return null;
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToGet3DViewTypeError + ex.Message, ex);
+            }
         }
 
         private List<ElementId> GetInvisibleElementsIn(Document doc)
         {
-            View activeView = doc.ActiveView;
-            List<ElementId> elementsIds = new List<ElementId>();
+            try
+            {
+                View activeView = doc.ActiveView;
+                List<ElementId> elementsIds = new List<ElementId>();
 
-            elementsIds = new FilteredElementCollector(doc)
-                .WhereElementIsNotElementType()
-                .Where(x => x.IsHidden(activeView))
-                .Select(x => x.Id)
-                .ToList();
+                elementsIds = new FilteredElementCollector(doc)
+                    .WhereElementIsNotElementType()
+                    .Where(x => x.IsHidden(activeView))
+                    .Select(x => x.Id)
+                    .ToList();
 
-            return elementsIds;
+                return elementsIds;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToGetInvisibleElementsError + ex.Message, ex);
+            }
         }
     }
 }

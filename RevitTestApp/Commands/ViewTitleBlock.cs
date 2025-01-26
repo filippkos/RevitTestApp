@@ -2,6 +2,10 @@
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using RevitTestApp.Wpf.Dialogs;
+using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Linq;
 using System.Windows;
 
 namespace RevitTestApp.Commands
@@ -14,61 +18,83 @@ namespace RevitTestApp.Commands
             UIDocument uiDoc = commandData.Application.ActiveUIDocument;
             Document doc = uiDoc.Document;
 
-            PlanSelection selection = new PlanSelection(GetAll2DViews(doc));
-            bool? result = selection.ShowDialog();
-            if (result == true)
+            try
             {
-                View? selectedView = selection.SelectedPlan;
-
-                if (!Is2DView(selectedView)) return ShowErrorAndFail(Strings.ErrorTitle, Strings.IsNot2DErrorDescription);
-
-                if (!IsViewNotOnSheet(selectedView, doc)) return ShowErrorAndFail(Strings.ErrorTitle, Strings.IsAlreadyPlacedErrorDescription);
-
-                var viewDimensions = GetViewDimensions(selectedView);
-                if (viewDimensions == null) return ShowErrorAndFail(Strings.ErrorTitle, Strings.FaildToGetDimensionsErrorDescription);
-
-                double scaledViewArea = viewDimensions.Value.Width * viewDimensions.Value.Height;
-                Element? optimalTitleBlock = FindOptimalTitleBlock(doc, viewDimensions.Value);
-
-                if (optimalTitleBlock != null)
+                PlanSelection selection = new PlanSelection(GetAll2DViews(doc));
+                bool? result = selection.ShowDialog();
+                if (result == true)
                 {
-                    return CreateSheetAndPlaceView(doc, selectedView, optimalTitleBlock, viewDimensions.Value);
+                    View? selectedView = selection.SelectedPlan;
+
+                    if (!Is2DView(selectedView))
+                        return ShowErrorAndFail(Strings.ErrorTitle, Strings.IsNot2DError);
+
+                    if (!IsViewNotOnSheet(selectedView, doc))
+                        return ShowErrorAndFail(Strings.ErrorTitle, Strings.IsAlreadyPlacedError);
+
+                    var viewDimensions = GetViewDimensions(selectedView);
+                    if (viewDimensions == null)
+                        return ShowErrorAndFail(Strings.ErrorTitle, Strings.FailedToGetDimensionsError);
+
+                    double scaledViewArea = viewDimensions.Value.Width * viewDimensions.Value.Height;
+                    Element? optimalTitleBlock = FindOptimalTitleBlock(doc, viewDimensions.Value);
+
+                    if (optimalTitleBlock != null)
+                    {
+                        return CreateSheetAndPlaceView(doc, selectedView, optimalTitleBlock, viewDimensions.Value);
+                    }
+
+                    TaskDialog.Show(Strings.MessageTitle, Strings.TitleBlockNotFoundError);
+                    return Result.Succeeded;
                 }
-
-                TaskDialog.Show(Strings.MessageTitle, Strings.TitleBlockNotFoundErrorDescription);
-
-                return Result.Succeeded;
+                else
+                {
+                    TaskDialog.Show(Strings.CancelTitle, Strings.OperationWasCancelledError);
+                    return Result.Cancelled;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                TaskDialog.Show(Strings.CancelTitle, Strings.OperationWasCancelledDescription);
-
-                return Result.Cancelled;
+                return HandleCriticalError(ex, Strings.ErrorTitle, Strings.UnexpectedError);
             }
         }
 
         private static List<View> GetAll2DViews(Document doc)
         {
-            var views = new FilteredElementCollector(doc)
-                .OfClass(typeof(View))
-                .Cast<View>()
-                .Where(v => !v.IsTemplate && 
-                    (v.ViewType == ViewType.FloorPlan ||
-                     v.ViewType == ViewType.CeilingPlan ||
-                     v.ViewType == ViewType.Section ||
-                     v.ViewType == ViewType.Elevation ||
-                     v.ViewType == ViewType.Detail))
-                .ToList();
+            try
+            {
+                var views = new FilteredElementCollector(doc)
+                    .OfClass(typeof(View))
+                    .Cast<View>()
+                    .Where(v => !v.IsTemplate &&
+                        (v.ViewType == ViewType.FloorPlan ||
+                         v.ViewType == ViewType.CeilingPlan ||
+                         v.ViewType == ViewType.Section ||
+                         v.ViewType == ViewType.Elevation ||
+                         v.ViewType == ViewType.Detail))
+                    .ToList();
 
-            return views;
+                return views;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToGet2DViewsError, ex);
+            }
         }
 
         private bool Is2DView(View view) => view is ViewPlan || view is ViewSection || view is ViewDrafting;
 
         private bool IsViewNotOnSheet(View view, Document doc)
         {
-            var viewPorts = GetViewPortsFromView(view, doc);
-            return viewPorts.All(viewport => viewport?.SheetId.Value == -1);
+            try
+            {
+                var viewPorts = GetViewPortsFromView(view, doc);
+                return viewPorts.All(viewport => viewport?.SheetId.Value == -1);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToCheckViewPlacementError, ex);
+            }
         }
 
         private Result ShowErrorAndFail(string title, string message)
@@ -79,81 +105,122 @@ namespace RevitTestApp.Commands
 
         private (double Width, double Height)? GetViewDimensions(View view)
         {
-            BoundingBoxXYZ viewBoundingBox = view.get_BoundingBox(null);
-            if (viewBoundingBox == null) return null;
+            try
+            {
+                BoundingBoxXYZ viewBoundingBox = view.get_BoundingBox(null);
+                if (viewBoundingBox == null) return null;
 
-            double width = (viewBoundingBox.Max.X - viewBoundingBox.Min.X) / view.Scale;
-            double height = (viewBoundingBox.Max.Y - viewBoundingBox.Min.Y) / view.Scale;
-            return (width, height);
+                double width = (viewBoundingBox.Max.X - viewBoundingBox.Min.X) / view.Scale;
+                double height = (viewBoundingBox.Max.Y - viewBoundingBox.Min.Y) / view.Scale;
+                return (width, height);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToGetDimensionsError, ex);
+            }
         }
 
         private Element? FindOptimalTitleBlock(Document doc, (double Width, double Height) viewDimensions)
         {
-            double scaledWidth = viewDimensions.Width;
-            double scaledHeight = viewDimensions.Height;
-            double? optimalSheetArea = null;
-            Element? optimalTitleBlock = null;
-
-            var titleBlocks = AllTitleBlocksIn(doc);
-
-            foreach (Element titleBlock in titleBlocks)
+            try
             {
-                double sheetWidth = titleBlock.get_Parameter(BuiltInParameter.SHEET_WIDTH).AsDouble();
-                double sheetHeight = titleBlock.get_Parameter(BuiltInParameter.SHEET_HEIGHT).AsDouble();
+                double scaledWidth = viewDimensions.Width;
+                double scaledHeight = viewDimensions.Height;
+                double? optimalSheetArea = null;
+                Element? optimalTitleBlock = null;
 
-                if (scaledWidth <= sheetWidth && scaledHeight <= sheetHeight)
+                var titleBlocks = AllTitleBlocksIn(doc);
+
+                foreach (Element titleBlock in titleBlocks)
                 {
-                    double area = sheetWidth * sheetHeight;
-                    if (optimalSheetArea == null || area < optimalSheetArea)
+                    double sheetWidth = titleBlock.get_Parameter(BuiltInParameter.SHEET_WIDTH).AsDouble();
+                    double sheetHeight = titleBlock.get_Parameter(BuiltInParameter.SHEET_HEIGHT).AsDouble();
+
+                    if (scaledWidth <= sheetWidth && scaledHeight <= sheetHeight)
                     {
-                        optimalSheetArea = area;
-                        optimalTitleBlock = titleBlock;
+                        double area = sheetWidth * sheetHeight;
+                        if (optimalSheetArea == null || area < optimalSheetArea)
+                        {
+                            optimalSheetArea = area;
+                            optimalTitleBlock = titleBlock;
+                        }
                     }
                 }
-            }
 
-            return optimalTitleBlock;
+                return optimalTitleBlock;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.TitleBlockNotFoundError, ex);
+            }
         }
 
         private List<Element> AllTitleBlocksIn(Document doc)
-        { 
-            return new FilteredElementCollector(doc)
-                .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                .WhereElementIsNotElementType()
-                .ToList();
+        {
+            try
+            {
+                return new FilteredElementCollector(doc)
+                    .OfCategory(BuiltInCategory.OST_TitleBlocks)
+                    .WhereElementIsNotElementType()
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToGetAllTitleBlocks, ex);
+            }
         }
 
         private Result CreateSheetAndPlaceView(Document doc, View view, Element titleBlock, (double Width, double Height) viewDimensions)
         {
-            using (Transaction trans = new Transaction(doc, "Placing a view on a sheet"))
+            try
             {
-                trans.Start();
+                using (Transaction trans = new Transaction(doc, "Placing a view on a sheet"))
+                {
+                    trans.Start();
 
-                ElementId? titleBlockTypeId = (titleBlock as FamilyInstance)?.Symbol.Id;
-                ViewSheet newSheet = ViewSheet.Create(doc, titleBlockTypeId);
+                    ElementId? titleBlockTypeId = (titleBlock as FamilyInstance)?.Symbol.Id;
+                    ViewSheet newSheet = ViewSheet.Create(doc, titleBlockTypeId);
 
-                if (newSheet == null) return ShowErrorAndFail(Strings.ErrorTitle, Strings.FailedToCreateSheetErrorDescription);
+                    if (newSheet == null) return ShowErrorAndFail(Strings.ErrorTitle, Strings.FailedToCreateSheetError);
 
-                double sheetWidth = titleBlock.get_Parameter(BuiltInParameter.SHEET_WIDTH).AsDouble();
-                double sheetHeight = titleBlock.get_Parameter(BuiltInParameter.SHEET_HEIGHT).AsDouble();
+                    double sheetWidth = titleBlock.get_Parameter(BuiltInParameter.SHEET_WIDTH).AsDouble();
+                    double sheetHeight = titleBlock.get_Parameter(BuiltInParameter.SHEET_HEIGHT).AsDouble();
 
-                XYZ viewPosition = new XYZ((sheetWidth - viewDimensions.Width) / 2, (sheetHeight - viewDimensions.Height) / 2, 0);
-                Viewport.Create(doc, newSheet.Id, view.Id, viewPosition);
+                    XYZ viewPosition = new XYZ((sheetWidth - viewDimensions.Width) / 2, (sheetHeight - viewDimensions.Height) / 2, 0);
+                    Viewport.Create(doc, newSheet.Id, view.Id, viewPosition);
 
-                TaskDialog.Show(Strings.SuccessTitle, $"The view '{view.Name}' was placed on the sheet '{newSheet.SheetNumber}' ({titleBlock.Name}).");
+                    TaskDialog.Show(Strings.SuccessTitle, $"The view '{view.Name}' was placed on the sheet '{newSheet.SheetNumber}' ({titleBlock.Name}).");
 
-                trans.Commit();
-                return Result.Succeeded;
+                    trans.Commit();
+                    return Result.Succeeded;
+                }
+            }
+            catch (Exception ex)
+            {
+                return HandleCriticalError(ex, Strings.ErrorTitle, Strings.FailedToCreateSheetError);
             }
         }
 
         private List<Viewport?> GetViewPortsFromView(View view, Document doc)
         {
-            var dependentElements = view.GetDependentElements(null);
-            return dependentElements
-                .Select(id => doc.GetElement(id) as Viewport)
-                .Where(vp => vp != null)
-                .ToList();
+            try
+            {
+                var dependentElements = view.GetDependentElements(null);
+                return dependentElements
+                    .Select(id => doc.GetElement(id) as Viewport)
+                    .Where(vp => vp != null)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(Strings.FailedToGetViewportsError, ex);
+            }
+        }
+
+        private Result HandleCriticalError(Exception ex, string title, string message)
+        {
+            TaskDialog.Show(title, $"{message}\n\n{ex.Message}\n\n{ex.StackTrace}");
+            return Result.Failed;
         }
     }
 }
