@@ -15,7 +15,7 @@ Each button is associated with its respective command, and the plugin also inclu
 ## Commands Overview
 
 #### 1. View Title Block
-The plugin calculates the optimal title block size and place the active view on it.
+The plugin calculates the optimal title block size and place selected plan on it.
 #### 2. Hidden Elements in 3D View
 Creates a 3D view highlighting previously hidden elements on the active view. The plugin hides all visible elements and un-hides hidden ones, applying specific colors for element types.
 #### 3. Room Floors
